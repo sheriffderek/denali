@@ -334,7 +334,7 @@ describe('Denali.Action', function() {
       class MockService extends Service {
       }
 
-      mock.container.register('service:mock', MockService);
+      mock.container.register('service:mock', new MockService());
 
       let action = new TestAction(mock);
 
