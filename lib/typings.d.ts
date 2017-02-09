@@ -24,3 +24,5 @@ declare module "broccoli/lib" {
 }
 declare module "broccoli-slow-trees";
 declare module "copy-dereference";
+declare module "command-exists";
+declare module "cli-table2";
