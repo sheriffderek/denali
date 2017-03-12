@@ -65,7 +65,7 @@ export default class Request extends DenaliObject {
    *
    * @since 0.1.0
    */
-  public get body(): object {
+  public get body(): { [key: string]: any } {
     return (<any>this._incomingMessage).body;
   }
   public set body(value) {
