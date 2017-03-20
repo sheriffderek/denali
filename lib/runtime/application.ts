@@ -72,6 +72,8 @@ export default class Application extends Addon {
    */
   public container: Container;
 
+  protected drainers: (() => Promise<void>)[];
+
   constructor(options: ApplicationOptions) {
     if (!options.container) {
       options.container = new Container();
@@ -84,6 +86,7 @@ export default class Application extends Addon {
       options.container.register('logger:main', options.logger);
     }
     super(<AddonOptions>options);
+    this.drainers = [];
     this.container.register('application:main', this);
     this.router = this.container.lookup('router:main');
     this.logger = this.container.lookup('logger:main');
@@ -195,12 +198,24 @@ export default class Application extends Addon {
    * config/environment.js
    */
   private async createServer(port: number): Promise<void> {
-    await new Promise((resolve) => {
+      await new Promise((resolve) => {
       let handler = this.router.handle.bind(this.router);
       if (this.config.server.ssl) {
-        https.createServer(this.config.server.ssl, handler).listen(port, resolve);
+        let server = https.createServer(this.config.server.ssl, handler).listen(port, resolve);
+        this.drainers.push(async function drainHttps() {
+          await new Promise((resolve) => {
+            server.close(resolve);
+            setTimeout(resolve, 60 * 1000);
+          })
+        });
       } else {
-        http.createServer(handler).listen(port, resolve);
+        let server = http.createServer(handler).listen(port, resolve);
+        this.drainers.push(async function drainHttp() {
+          await new Promise((resolve) => {
+            server.close(resolve);
+            setTimeout(resolve, 60 * 1000);
+          })
+        });
       }
     });
   }
@@ -226,6 +241,7 @@ export default class Application extends Addon {
    * @since 0.1.0
    */
   public async shutdown(): Promise<void> {
+    await all(this.drainers.map((drainer) => drainer()));
     await all(this.addons.map(async (addon) => {
       await addon.shutdown(this);
     }));
